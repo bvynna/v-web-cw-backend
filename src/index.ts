@@ -7,6 +7,8 @@ import authRoutes from './presentation/routes/auth';
 import recipeRoutes from './presentation/routes/recipes';
 import dotenv from 'dotenv';
 import path from 'path';
+// Добавьте этот импорт
+import userRoutes from './presentation/routes/users';
 
 dotenv.config();
 
@@ -36,6 +38,7 @@ export const AppDataSource = new DataSource({
 // Маршруты
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
+app.use('/api/users', userRoutes);
 
 // Запуск сервера
 AppDataSource.initialize()
