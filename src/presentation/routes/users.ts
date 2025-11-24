@@ -7,8 +7,7 @@ import { Recipe } from '../../domain/entities/Recipe';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Middleware для проверки аутентификации
-const authenticateToken = (
+export const authenticateToken = (
   req: express.Request,
   res: express.Response,
   next: express.NextFunction,

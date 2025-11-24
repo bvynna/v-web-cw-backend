@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { User } from './User';
 import { Favorite } from './Favorite';
+import { Comment } from './Comment';
 
 @Entity()
 export class Recipe {
@@ -30,6 +31,9 @@ export class Recipe {
 
   @OneToMany(() => Favorite, favorite => favorite.recipe)
   favorites!: Favorite[];
+
+  @OneToMany(() => Comment, comment => comment.recipe)
+  comments!: Comment[];
 
   @Column({ default: 0 })
   likes!: number;

@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Recipe } from './Recipe';
 import { Favorite } from './Favorite';
+import { Comment } from './Comment';
 
 @Entity()
 export class User {
@@ -21,6 +22,9 @@ export class User {
 
   @OneToMany(() => Favorite, favorite => favorite.user)
   favorites!: Favorite[];
+
+  @OneToMany(() => Comment, comment => comment.author)
+  comments!: Comment[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt!: Date;
