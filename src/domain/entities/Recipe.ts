@@ -10,6 +10,9 @@ export class Recipe {
   @Column()
   title!: string;
 
+  @Column()
+  category!: string;
+
   @Column('text')
   description!: string;
 
