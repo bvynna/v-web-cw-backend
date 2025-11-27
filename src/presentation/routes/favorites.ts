@@ -4,6 +4,7 @@ import { AppDataSource } from '../../index';
 import { Favorite } from '../../domain/entities/Favorite';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
+import { Comment } from '../../domain/entities/Comment'; // Добавьте этот импорт
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -150,9 +151,22 @@ router.get('/', authenticateToken, async (req: express.Request, res: express.Res
       order: { createdAt: 'DESC' },
     });
 
-    const favoriteRecipes = favorites.map(fav => fav.recipe);
+    // Добавляем количество комментариев для каждого рецепта
+    const commentRepository = AppDataSource.getRepository(Comment);
+    const favoriteRecipesWithCommentCount = await Promise.all(
+      favorites.map(async fav => {
+        const commentCount = await commentRepository.count({
+          where: { recipe: { id: fav.recipe.id } },
+        });
 
-    res.json(favoriteRecipes);
+        return {
+          ...fav.recipe,
+          commentCount, // Добавляем поле с количеством комментариев
+        };
+      }),
+    );
+
+    res.json(favoriteRecipesWithCommentCount);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch favorite recipes' });

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../../index';
 import { User } from '../../domain/entities/User';
 import { Recipe } from '../../domain/entities/Recipe';
+import { Comment } from '../../domain/entities/Comment';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -60,7 +61,6 @@ router.get(
   async (req: express.Request, res: express.Response) => {
     try {
       const user = (req as any).user;
-
       const recipeRepository = AppDataSource.getRepository(Recipe);
       const recipes = await recipeRepository.find({
         where: { author: { id: user.userId } },
@@ -68,7 +68,21 @@ router.get(
         order: { createdAt: 'DESC' },
       });
 
-      res.json(recipes);
+      // Добавляем количество комментариев
+      const commentRepository = AppDataSource.getRepository(Comment);
+      const recipesWithCommentCount = await Promise.all(
+        recipes.map(async recipe => {
+          const commentCount = await commentRepository.count({
+            where: { recipe: { id: recipe.id } },
+          });
+          return {
+            ...recipe,
+            commentCount,
+          };
+        }),
+      );
+
+      res.json(recipesWithCommentCount);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Failed to fetch user recipes' });
