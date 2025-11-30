@@ -68,7 +68,6 @@ router.get(
         order: { createdAt: 'DESC' },
       });
 
-      // Добавляем количество комментариев
       const commentRepository = AppDataSource.getRepository(Comment);
       const recipesWithCommentCount = await Promise.all(
         recipes.map(async recipe => {
@@ -106,7 +105,6 @@ router.put('/profile', authenticateToken, async (req: express.Request, res: expr
       return;
     }
 
-    // Проверяем, что email не занят другим пользователем
     if (email && email !== existingUser.email) {
       const emailExists = await userRepository.findOne({ where: { email } });
       if (emailExists) {
@@ -115,13 +113,11 @@ router.put('/profile', authenticateToken, async (req: express.Request, res: expr
       }
     }
 
-    // Обновляем данные
     if (name) existingUser.name = name;
     if (email) existingUser.email = email;
 
     await userRepository.save(existingUser);
 
-    // Возвращаем обновленный профиль без пароля
     const updatedProfile = {
       id: existingUser.id,
       email: existingUser.email,
@@ -133,6 +129,59 @@ router.put('/profile', authenticateToken, async (req: express.Request, res: expr
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+router.get('/:userId', async (req: express.Request, res: express.Response) => {
+  try {
+    const { userId } = req.params;
+
+    const userRepository = AppDataSource.getRepository(User);
+    const userProfile = await userRepository.findOne({
+      where: { id: parseInt(userId) },
+      select: ['id', 'email', 'name', 'createdAt'],
+    });
+
+    if (!userProfile) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    res.json(userProfile);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch user profile' });
+  }
+});
+
+router.get('/:userId/recipes', async (req: express.Request, res: express.Response) => {
+  try {
+    const { userId } = req.params;
+
+    const recipeRepository = AppDataSource.getRepository(Recipe);
+    const recipes = await recipeRepository.find({
+      where: { author: { id: parseInt(userId) } },
+      relations: ['author'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const commentRepository = AppDataSource.getRepository(Comment);
+    const recipesWithCommentCount = await Promise.all(
+      recipes.map(async recipe => {
+        const commentCount = await commentRepository.count({
+          where: { recipe: { id: recipe.id } },
+        });
+        return {
+          ...recipe,
+          commentCount,
+        };
+      }),
+    );
+
+    res.json(recipesWithCommentCount);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch user recipes' });
   }
 });
 
