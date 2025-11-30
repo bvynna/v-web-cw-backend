@@ -1,21 +1,25 @@
-// routes/comments.ts
 import express from 'express';
 import { AppDataSource } from '../../index';
 import { Comment } from '../../domain/entities/Comment';
 import { Recipe } from '../../domain/entities/Recipe';
+import { User } from '../../domain/entities/User';
 import { authenticateToken } from './users';
+import { IsNull } from 'typeorm';
 
 const router = express.Router();
 
-// Получить комментарии для рецепта
+// Получить комментарии для рецепта (с ответами)
 router.get('/recipes/:recipeId/comments', async (req: express.Request, res: express.Response) => {
   try {
     const { recipeId } = req.params;
 
     const commentRepository = AppDataSource.getRepository(Comment);
     const comments = await commentRepository.find({
-      where: { recipe: { id: parseInt(recipeId) } },
-      relations: ['author'],
+      where: {
+        recipe: { id: parseInt(recipeId) },
+        parentComment: IsNull(),
+      },
+      relations: ['author', 'replies', 'replies.author'],
       order: { createdAt: 'DESC' },
     });
 
@@ -26,14 +30,14 @@ router.get('/recipes/:recipeId/comments', async (req: express.Request, res: expr
   }
 });
 
-// Добавить комментарий
+// Добавить комментарий (родительский или ответ)
 router.post(
   '/recipes/:recipeId/comments',
   authenticateToken,
   async (req: express.Request, res: express.Response) => {
     try {
       const { recipeId } = req.params;
-      const { content } = req.body;
+      const { content, parentCommentId } = req.body;
       const user = (req as any).user;
 
       if (!content || content.trim().length === 0) {
@@ -50,18 +54,48 @@ router.post(
       }
 
       const commentRepository = AppDataSource.getRepository(Comment);
-      const comment = commentRepository.create({
-        content: content.trim(),
-        author: { id: user.userId },
-        recipe: { id: parseInt(recipeId) },
-      });
+      const userRepository = AppDataSource.getRepository(User);
+
+      // Если это ответ на комментарий, проверяем существование родительского комментария
+      let parentComment = undefined;
+      if (parentCommentId) {
+        parentComment = await commentRepository.findOne({
+          where: { id: parentCommentId },
+          relations: ['recipe'],
+        });
+
+        if (!parentComment) {
+          res.status(404).json({ error: 'Parent comment not found' });
+          return;
+        }
+
+        // Увеличиваем счетчик ответов у родительского комментария
+        parentComment.replyCount += 1;
+        await commentRepository.save(parentComment);
+      }
+
+      // Получаем пользователя
+      const currentUser = await userRepository.findOne({ where: { id: user.userId } });
+      if (!currentUser) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+
+      // Создаем комментарий
+      const comment = new Comment();
+      comment.content = content.trim();
+      comment.author = currentUser;
+      comment.recipe = recipe;
+      if (parentComment) {
+        comment.parentComment = parentComment;
+      }
 
       await commentRepository.save(comment);
 
-      // Возвращаем комментарий с данными автора
+      // Возвращаем комментарий с данными автора и ответами
       const savedComment = await commentRepository.findOne({
         where: { id: comment.id },
-        relations: ['author'],
+        relations: ['author', 'replies', 'replies.author', 'parentComment'],
       });
 
       res.status(201).json(savedComment);
@@ -71,6 +105,25 @@ router.post(
     }
   },
 );
+
+// Получить ответы на конкретный комментарий
+router.get('/comments/:commentId/replies', async (req: express.Request, res: express.Response) => {
+  try {
+    const { commentId } = req.params;
+
+    const commentRepository = AppDataSource.getRepository(Comment);
+    const replies = await commentRepository.find({
+      where: { parentComment: { id: parseInt(commentId) } },
+      relations: ['author'],
+      order: { createdAt: 'ASC' },
+    });
+
+    res.json(replies);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch comment replies' });
+  }
+});
 
 // Удалить комментарий
 router.delete(
@@ -84,7 +137,7 @@ router.delete(
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({
         where: { id: parseInt(commentId) },
-        relations: ['author'],
+        relations: ['author', 'parentComment'],
       });
 
       if (!comment) {
@@ -96,6 +149,25 @@ router.delete(
       if (comment.author.id !== user.userId) {
         res.status(403).json({ error: 'You can only delete your own comments' });
         return;
+      }
+
+      // Если это родительский комментарий с ответами, удаляем все ответы
+      if (comment.replyCount > 0) {
+        const replies = await commentRepository.find({
+          where: { parentComment: { id: comment.id } },
+        });
+        await commentRepository.remove(replies);
+      }
+
+      // Если это ответ, уменьшаем счетчик у родительского комментария
+      if (comment.parentComment) {
+        const parentComment = await commentRepository.findOne({
+          where: { id: comment.parentComment.id },
+        });
+        if (parentComment && parentComment.replyCount > 0) {
+          parentComment.replyCount -= 1;
+          await commentRepository.save(parentComment);
+        }
       }
 
       await commentRepository.remove(comment);
