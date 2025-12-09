@@ -8,7 +8,7 @@ import { User } from '../../domain/entities/User';
 import { Recipe } from '../../domain/entities/Recipe';
 import { Comment } from '../../domain/entities/Comment';
 
-const AVATAR_UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+const AVATAR_UPLOAD_DIR = path.join(__dirname, '..', '..', '..', 'uploads');
 
 if (!fs.existsSync(AVATAR_UPLOAD_DIR)) {
   fs.mkdirSync(AVATAR_UPLOAD_DIR, { recursive: true });
