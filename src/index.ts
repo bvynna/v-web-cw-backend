@@ -12,6 +12,8 @@ import favoriteRoutes from './presentation/routes/favorites';
 import { Favorite } from './domain/entities/Favorite';
 import commentRoutes from './presentation/routes/comments';
 import { Comment } from './domain/entities/Comment';
+import { Notification } from './domain/entities/Notification';
+import notificationRoutes from './presentation/routes/notifications';
 
 dotenv.config();
 
@@ -33,7 +35,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   database: process.env.DB_NAME || 'culinary_platform',
-  entities: [User, Recipe, Favorite, Comment],
+  entities: [User, Recipe, Favorite, Comment, Notification],
   synchronize: true,
   logging: true,
 });
@@ -44,6 +46,7 @@ app.use('/api/recipes', recipeRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api', commentRoutes);
+app.use('/api', notificationRoutes);
 // Запуск сервера
 AppDataSource.initialize()
   .then(() => {

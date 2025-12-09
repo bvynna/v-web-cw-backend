@@ -4,7 +4,8 @@ import { AppDataSource } from '../../index';
 import { Favorite } from '../../domain/entities/Favorite';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
-import { Comment } from '../../domain/entities/Comment'; // Добавьте этот импорт
+import { Comment } from '../../domain/entities/Comment';
+import { Notification } from '../../domain/entities/Notification';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -45,9 +46,14 @@ router.post(
       const favoriteRepository = AppDataSource.getRepository(Favorite);
       const recipeRepository = AppDataSource.getRepository(Recipe);
       const userRepository = AppDataSource.getRepository(User);
+      const notificationRepository = AppDataSource.getRepository(Notification);
 
       // Проверяем существование рецепта
-      const recipe = await recipeRepository.findOne({ where: { id: recipeId } });
+      const recipe = await recipeRepository.findOne({
+        where: { id: recipeId },
+        relations: ['author'],
+      });
+
       if (!recipe) {
         res.status(404).json({ error: 'Recipe not found' });
         return;
@@ -85,6 +91,17 @@ router.post(
       // Обновляем счетчик лайков
       recipe.likes += 1;
       await recipeRepository.save(recipe);
+
+      // Создаём уведомление для автора рецепта (если это не сам автор)
+      if (recipe.author.id !== user.userId) {
+        const notification = notificationRepository.create({
+          recipientId: recipe.author.id,
+          senderId: user.userId,
+          type: 'like',
+          recipeId: recipe.id,
+        });
+        await notificationRepository.save(notification);
+      }
 
       res.status(201).json({ message: 'Recipe added to favorites', likes: recipe.likes });
     } catch (error) {
@@ -161,7 +178,7 @@ router.get('/', authenticateToken, async (req: express.Request, res: express.Res
 
         return {
           ...fav.recipe,
-          commentCount, // Добавляем поле с количеством комментариев
+          commentCount,
         };
       }),
     );

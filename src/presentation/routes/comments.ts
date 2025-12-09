@@ -3,6 +3,7 @@ import { AppDataSource } from '../../index';
 import { Comment } from '../../domain/entities/Comment';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
+import { Notification } from '../../domain/entities/Notification';
 import { authenticateToken } from './users';
 import { IsNull } from 'typeorm';
 
@@ -46,7 +47,10 @@ router.post(
       }
 
       const recipeRepository = AppDataSource.getRepository(Recipe);
-      const recipe = await recipeRepository.findOne({ where: { id: parseInt(recipeId) } });
+      const recipe = await recipeRepository.findOne({
+        where: { id: parseInt(recipeId) },
+        relations: ['author'],
+      });
 
       if (!recipe) {
         res.status(404).json({ error: 'Recipe not found' });
@@ -55,13 +59,14 @@ router.post(
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const userRepository = AppDataSource.getRepository(User);
+      const notificationRepository = AppDataSource.getRepository(Notification);
 
       // Если это ответ на комментарий, проверяем существование родительского комментария
       let parentComment = undefined;
       if (parentCommentId) {
         parentComment = await commentRepository.findOne({
           where: { id: parentCommentId },
-          relations: ['recipe'],
+          relations: ['recipe', 'author'],
         });
 
         if (!parentComment) {
@@ -91,6 +96,33 @@ router.post(
       }
 
       await commentRepository.save(comment);
+
+      // Создаём уведомление
+      if (parentComment) {
+        // Это ответ на комментарий — уведомление автору комментария
+        if (parentComment.author.id !== user.userId) {
+          const notification = notificationRepository.create({
+            recipientId: parentComment.author.id,
+            senderId: user.userId,
+            type: 'reply',
+            recipeId: recipe.id,
+            commentId: comment.id,
+          });
+          await notificationRepository.save(notification);
+        }
+      } else {
+        // Это комментарий к рецепту — уведомление автору рецепта
+        if (recipe.author.id !== user.userId) {
+          const notification = notificationRepository.create({
+            recipientId: recipe.author.id,
+            senderId: user.userId,
+            type: 'comment',
+            recipeId: recipe.id,
+            commentId: comment.id,
+          });
+          await notificationRepository.save(notification);
+        }
+      }
 
       // Возвращаем комментарий с данными автора и ответами
       const savedComment = await commentRepository.findOne({
