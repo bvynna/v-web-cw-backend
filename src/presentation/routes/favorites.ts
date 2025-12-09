@@ -216,4 +216,31 @@ router.get(
   },
 );
 
+// Получить список пользователей, лайкнувших рецепт
+router.get('/recipes/:recipeId/likes', async (req: express.Request, res: express.Response) => {
+  try {
+    const recipeId = parseInt(req.params.recipeId);
+
+    const favoriteRepository = AppDataSource.getRepository(Favorite);
+
+    const favorites = await favoriteRepository.find({
+      where: { recipe: { id: recipeId } },
+      relations: ['user'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const users = favorites.map(fav => ({
+      id: fav.user.id,
+      name: fav.user.name,
+      avatarUrl: fav.user.avatarUrl,
+      likedAt: fav.createdAt,
+    }));
+
+    return res.json(users);
+  } catch (error) {
+    console.error('Failed to fetch recipe likes:', error);
+    return res.status(500).json({ error: 'Failed to fetch recipe likes' });
+  }
+});
+
 export default router;

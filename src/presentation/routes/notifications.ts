@@ -13,7 +13,7 @@ router.get('/notifications', authenticateToken, async (req: any, res: express.Re
 
     const notifications = await notificationRepository.find({
       where: { recipientId: userId },
-      relations: ['sender', 'recipe', 'recipe.author'], // ← Добавь recipe.author
+      relations: ['sender', 'recipe', 'recipe.author'],
       order: { createdAt: 'DESC' },
     });
 
@@ -23,12 +23,13 @@ router.get('/notifications', authenticateToken, async (req: any, res: express.Re
       sender: {
         id: n.sender.id,
         name: n.sender.name,
+        avatarUrl: n.sender.avatarUrl,
       },
       recipe: n.recipe
         ? {
             id: n.recipe.id,
             title: n.recipe.title,
-            authorId: n.recipe.author.id, // ← ID автора рецепта
+            authorId: n.recipe.author.id,
           }
         : null,
       recipeId: n.recipe?.id || null,
@@ -109,6 +110,25 @@ router.patch(
     } catch (error) {
       console.error('Failed to mark all as read:', error);
       return res.status(500).json({ error: 'Failed to update notifications' });
+    }
+  },
+);
+
+// Удалить все уведомления
+router.delete(
+  '/notifications/clear',
+  authenticateToken,
+  async (req: any, res: express.Response) => {
+    try {
+      const userId = req.user.userId;
+      const notificationRepository = AppDataSource.getRepository(Notification);
+
+      await notificationRepository.delete({ recipientId: userId });
+
+      return res.json({ message: 'All notifications cleared' });
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+      return res.status(500).json({ error: 'Failed to clear notifications' });
     }
   },
 );

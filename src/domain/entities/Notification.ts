@@ -26,7 +26,7 @@ export class Notification {
 
   // Тип уведомления
   @Column()
-  type!: 'like' | 'comment' | 'reply';
+  type!: 'like' | 'comment' | 'reply' | 'subscription';
 
   // Связанные объекты
   @ManyToOne(() => Recipe, { nullable: true, onDelete: 'CASCADE' })

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
@@ -6,6 +7,7 @@ import { AppDataSource } from '../../index';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
 import { Comment } from '../../domain/entities/Comment';
+import { Subscription } from '../../domain/entities/Subscription';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -63,11 +65,56 @@ const authenticateToken = (
 router.get('/', async (req: express.Request, res: express.Response) => {
   try {
     const recipeRepository = AppDataSource.getRepository(Recipe);
-    const recipes = await recipeRepository.find({
-      relations: ['author'],
-      order: { createdAt: 'DESC' },
-    });
     const commentRepository = AppDataSource.getRepository(Comment);
+
+    // Получаем текущего пользователя из токена (опционально)
+    let currentUserId: number | null = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        currentUserId = decoded.userId;
+      } catch (err) {
+        // Игнорируем ошибки токена для публичного доступа
+      }
+    }
+
+    let recipes: Recipe[];
+
+    if (currentUserId) {
+      // Получаем ID пользователей, на которых подписан текущий пользователь
+      const subscriptionRepository = AppDataSource.getRepository(Subscription);
+      const subscriptions = await subscriptionRepository.find({
+        where: { subscriberId: currentUserId },
+        select: ['targetId'],
+      });
+      const subscribedUserIds = subscriptions.map(sub => sub.targetId);
+
+      // Получаем все рецепты
+      const allRecipes = await recipeRepository.find({
+        relations: ['author'],
+        order: { createdAt: 'DESC' },
+      });
+
+      // Сортируем: сначала рецепты от подписок, потом остальные
+      const subscribedRecipes = allRecipes.filter(recipe =>
+        subscribedUserIds.includes(recipe.author.id),
+      );
+      const otherRecipes = allRecipes.filter(
+        recipe => !subscribedUserIds.includes(recipe.author.id),
+      );
+
+      recipes = [...subscribedRecipes, ...otherRecipes];
+    } else {
+      // Для неавторизованных пользователей — обычная лента
+      recipes = await recipeRepository.find({
+        relations: ['author'],
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    // Добавляем количество комментариев
     const recipesWithCommentCount = await Promise.all(
       recipes.map(async recipe => {
         const commentCount = await commentRepository.count({
@@ -79,6 +126,7 @@ router.get('/', async (req: express.Request, res: express.Response) => {
         };
       }),
     );
+
     res.json(recipesWithCommentCount);
   } catch (error) {
     console.error(error);
