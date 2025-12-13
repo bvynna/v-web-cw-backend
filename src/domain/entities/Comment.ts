@@ -44,8 +44,5 @@ export class Comment {
   createdAt!: Date;
 
   @Column({ default: 0 })
-  likes!: number;
-
-  @Column({ default: 0 })
   replyCount!: number;
 }
