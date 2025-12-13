@@ -141,7 +141,7 @@ router.post(
   upload.single('image'),
   async (req: express.Request, res: express.Response) => {
     try {
-      const { title, description, ingredients, instructions } = req.body;
+      const { title, category, description, ingredients, instructions } = req.body;
       const imageFile = req.file;
 
       const user = (req as any).user;
@@ -165,6 +165,7 @@ router.post(
       // Создаем рецепт через new Recipe()
       const recipe = new Recipe();
       recipe.title = title;
+      recipe.category = category;
       recipe.description = description;
       recipe.ingredients = ingredients;
       recipe.instructions = instructions;
