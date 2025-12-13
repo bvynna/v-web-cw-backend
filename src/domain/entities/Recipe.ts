@@ -29,7 +29,7 @@ export class Recipe {
   @ManyToOne(() => User, user => user.recipes)
   author!: User;
 
-  @OneToMany(() => Favorite, favorite => favorite.recipe)
+  @OneToMany(() => Favorite, favorite => favorite.recipe, { cascade: true, onDelete: 'CASCADE' })
   favorites!: Favorite[];
 
   @OneToMany(() => Comment, comment => comment.recipe)
