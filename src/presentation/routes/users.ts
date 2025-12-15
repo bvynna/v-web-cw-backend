@@ -1,8 +1,8 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import { authenticateToken } from '../middlewares/auth';
 import { AppDataSource } from '../../index';
 import { User } from '../../domain/entities/User';
 import { Recipe } from '../../domain/entities/Recipe';
@@ -41,30 +41,6 @@ const upload = multer({
 });
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-export const authenticateToken = (
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    res.status(401).json({ error: 'Access token required' });
-    return;
-  }
-
-  jwt.verify(token, JWT_SECRET, (err: unknown, user: unknown) => {
-    if (err) {
-      res.status(403).json({ error: 'Invalid token' });
-      return;
-    }
-    (req as any).user = user;
-    next();
-  });
-};
 
 // Получить профиль текущего пользователя
 router.get('/profile', authenticateToken, async (req: express.Request, res: express.Response) => {

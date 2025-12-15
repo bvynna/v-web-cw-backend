@@ -4,7 +4,7 @@ import { Comment } from '../../domain/entities/Comment';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
 import { Notification } from '../../domain/entities/Notification';
-import { authenticateToken } from './users';
+import { authenticateToken } from '../middlewares/auth';
 import { IsNull } from 'typeorm';
 
 const router = express.Router();

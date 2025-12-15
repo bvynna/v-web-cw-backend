@@ -1,7 +1,7 @@
 import express from 'express';
 import { AppDataSource } from '../../index';
 import { Notification } from '../../domain/entities/Notification';
-import { authenticateToken } from './users';
+import { authenticateToken } from '../middlewares/auth';
 
 const router = express.Router();
 

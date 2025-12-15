@@ -3,7 +3,7 @@ import { AppDataSource } from '../../index';
 import { Subscription } from '../../domain/entities/Subscription';
 import { User } from '../../domain/entities/User';
 import { Notification } from '../../domain/entities/Notification';
-import { authenticateToken } from './users';
+import { authenticateToken } from '../middlewares/auth';
 
 const router = express.Router();
 

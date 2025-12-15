@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
+import { authenticateToken } from '../middlewares/auth';
 import { AppDataSource } from '../../index';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
@@ -10,7 +9,6 @@ import { Comment } from '../../domain/entities/Comment';
 import { Subscription } from '../../domain/entities/Subscription';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Настройка multer для загрузки файлов
 const storage = multer.diskStorage({
@@ -37,48 +35,14 @@ const upload = multer({
   },
 });
 
-// Middleware для проверки аутентификации
-const authenticateToken = (
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    res.status(401).json({ error: 'Access token required' });
-    return;
-  }
-
-  jwt.verify(token, JWT_SECRET, (err: unknown, user: unknown) => {
-    if (err) {
-      res.status(403).json({ error: 'Invalid token' });
-      return;
-    }
-    (req as any).user = user;
-    next();
-  });
-};
-
 // Получить все рецепты
 router.get('/', async (req: express.Request, res: express.Response) => {
   try {
     const recipeRepository = AppDataSource.getRepository(Recipe);
     const commentRepository = AppDataSource.getRepository(Comment);
 
-    // Получаем текущего пользователя из токена (опционально)
-    let currentUserId: number | null = null;
-    const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
-        currentUserId = decoded.userId;
-      } catch (err) {
-        // Игнорируем ошибки токена для публичного доступа
-      }
-    }
+    const user = (req as any).user;
+    const currentUserId = user?.userId || null;
 
     let recipes: Recipe[];
 
