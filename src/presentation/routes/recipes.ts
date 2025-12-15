@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { authenticateToken } from '../middlewares/auth';
+import { authenticateToken, optionalAuth } from '../middlewares/auth';
 import { AppDataSource } from '../../index';
 import { Recipe } from '../../domain/entities/Recipe';
 import { User } from '../../domain/entities/User';
@@ -36,13 +36,13 @@ const upload = multer({
 });
 
 // Получить все рецепты
-router.get('/', async (req: express.Request, res: express.Response) => {
+router.get('/', optionalAuth, async (req: express.Request, res: express.Response) => {
   try {
     const recipeRepository = AppDataSource.getRepository(Recipe);
     const commentRepository = AppDataSource.getRepository(Comment);
 
-    const user = req.user!;
-    const currentUserId = user.userId || null;
+    const user = req.user;
+    const currentUserId = user?.userId || null;
 
     let recipes: Recipe[];
 
