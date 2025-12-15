@@ -41,8 +41,8 @@ router.get('/', async (req: express.Request, res: express.Response) => {
     const recipeRepository = AppDataSource.getRepository(Recipe);
     const commentRepository = AppDataSource.getRepository(Comment);
 
-    const user = (req as any).user;
-    const currentUserId = user?.userId || null;
+    const user = req.user!;
+    const currentUserId = user.userId || null;
 
     let recipes: Recipe[];
 
@@ -108,7 +108,7 @@ router.post(
       const { title, category, description, ingredients, instructions } = req.body;
       const imageFile = req.file;
 
-      const user = (req as any).user;
+      const user = req.user;
       if (!user || !user.userId) {
         res.status(401).json({ error: 'User not authenticated' });
         return;
@@ -156,7 +156,7 @@ router.post(
 router.delete('/:id', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
     const recipeId = parseInt(req.params.id);
-    const user = (req as any).user;
+    const user = req.user;
 
     if (!user || !user.userId) {
       res.status(401).json({ error: 'User not authenticated' });

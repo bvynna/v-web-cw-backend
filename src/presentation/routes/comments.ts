@@ -39,7 +39,7 @@ router.post(
     try {
       const { recipeId } = req.params;
       const { content, parentCommentId } = req.body;
-      const user = (req as any).user;
+      const user = req.user;
 
       if (!content || content.trim().length === 0) {
         res.status(400).json({ error: 'Comment content is required' });
@@ -80,7 +80,7 @@ router.post(
       }
 
       // Получаем пользователя
-      const currentUser = await userRepository.findOne({ where: { id: user.userId } });
+      const currentUser = await userRepository.findOne({ where: { id: user!.userId } });
       if (!currentUser) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -100,10 +100,10 @@ router.post(
       // Создаём уведомление
       if (parentComment) {
         // Это ответ на комментарий — уведомление автору комментария
-        if (parentComment.author.id !== user.userId) {
+        if (parentComment.author.id !== user!.userId) {
           const notification = notificationRepository.create({
             recipientId: parentComment.author.id,
-            senderId: user.userId,
+            senderId: user!.userId,
             type: 'reply',
             recipeId: recipe.id,
             commentId: comment.id,
@@ -112,10 +112,10 @@ router.post(
         }
       } else {
         // Это комментарий к рецепту — уведомление автору рецепта
-        if (recipe.author.id !== user.userId) {
+        if (recipe.author.id !== user!.userId) {
           const notification = notificationRepository.create({
             recipientId: recipe.author.id,
-            senderId: user.userId,
+            senderId: user!.userId,
             type: 'comment',
             recipeId: recipe.id,
             commentId: comment.id,
@@ -164,7 +164,7 @@ router.delete(
   async (req: express.Request, res: express.Response) => {
     try {
       const { commentId } = req.params;
-      const user = (req as any).user;
+      const user = req.user;
 
       const commentRepository = AppDataSource.getRepository(Comment);
       const comment = await commentRepository.findOne({
@@ -178,7 +178,7 @@ router.delete(
       }
 
       // Проверяем, что пользователь является автором комментария
-      if (comment.author.id !== user.userId) {
+      if (comment.author.id !== user!.userId) {
         res.status(403).json({ error: 'You can only delete your own comments' });
         return;
       }

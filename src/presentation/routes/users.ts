@@ -45,7 +45,7 @@ const router = express.Router();
 // Получить профиль текущего пользователя
 router.get('/profile', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
 
     const userRepository = AppDataSource.getRepository(User);
     const userProfile = await userRepository.findOne({
@@ -71,7 +71,8 @@ router.get(
   authenticateToken,
   async (req: express.Request, res: express.Response) => {
     try {
-      const user = (req as any).user;
+      const user = req.user!;
+
       const recipeRepository = AppDataSource.getRepository(Recipe);
       const recipes = await recipeRepository.find({
         where: { author: { id: user.userId } },
@@ -103,7 +104,8 @@ router.get(
 // Обновить профиль пользователя
 router.put('/profile', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user!;
+
     const { name, email, avatarUrl } = req.body;
 
     const userRepository = AppDataSource.getRepository(User);
@@ -153,8 +155,8 @@ router.post(
   upload.single('avatar'),
   async (req: express.Request, res: express.Response) => {
     try {
-      const userReq = req as any;
-      const userId = userReq.user.userId;
+      const user = req.user!;
+      const userId = user.userId;
 
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });

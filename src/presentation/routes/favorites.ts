@@ -16,7 +16,7 @@ router.post(
   async (req: express.Request, res: express.Response) => {
     try {
       const recipeId = parseInt(req.params.recipeId);
-      const user = (req as any).user;
+      const user = req.user;
 
       const favoriteRepository = AppDataSource.getRepository(Favorite);
       const recipeRepository = AppDataSource.getRepository(Recipe);
@@ -37,7 +37,7 @@ router.post(
       // Проверяем не добавлен ли уже рецепт в избранное
       const existingFavorite = await favoriteRepository.findOne({
         where: {
-          user: { id: user.userId },
+          user: { id: user!.userId },
           recipe: { id: recipeId },
         },
         relations: ['user', 'recipe'],
@@ -49,7 +49,7 @@ router.post(
       }
 
       // Получаем пользователя
-      const currentUser = await userRepository.findOne({ where: { id: user.userId } });
+      const currentUser = await userRepository.findOne({ where: { id: user!.userId } });
       if (!currentUser) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -68,10 +68,10 @@ router.post(
       await recipeRepository.save(recipe);
 
       // Создаём уведомление для автора рецепта (если это не сам автор)
-      if (recipe.author.id !== user.userId) {
+      if (recipe.author.id !== user!.userId) {
         const notification = notificationRepository.create({
           recipientId: recipe.author.id,
-          senderId: user.userId,
+          senderId: user!.userId,
           type: 'like',
           recipeId: recipe.id,
         });
@@ -93,7 +93,7 @@ router.delete(
   async (req: express.Request, res: express.Response) => {
     try {
       const recipeId = parseInt(req.params.recipeId);
-      const user = (req as any).user;
+      const user = req.user;
 
       const favoriteRepository = AppDataSource.getRepository(Favorite);
       const recipeRepository = AppDataSource.getRepository(Recipe);
@@ -101,7 +101,7 @@ router.delete(
       // Находим запись в избранном
       const favorite = await favoriteRepository.findOne({
         where: {
-          user: { id: user.userId },
+          user: { id: user!.userId },
           recipe: { id: recipeId },
         },
         relations: ['recipe'],
@@ -133,12 +133,12 @@ router.delete(
 // Получить избранные рецепты пользователя
 router.get('/', authenticateToken, async (req: express.Request, res: express.Response) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
 
     const favoriteRepository = AppDataSource.getRepository(Favorite);
 
     const favorites = await favoriteRepository.find({
-      where: { user: { id: user.userId } },
+      where: { user: { id: user!.userId } },
       relations: ['recipe', 'recipe.author'],
       order: { createdAt: 'DESC' },
     });
@@ -172,13 +172,13 @@ router.get(
   async (req: express.Request, res: express.Response) => {
     try {
       const recipeId = parseInt(req.params.recipeId);
-      const user = (req as any).user;
+      const user = req.user;
 
       const favoriteRepository = AppDataSource.getRepository(Favorite);
 
       const favorite = await favoriteRepository.findOne({
         where: {
-          user: { id: user.userId },
+          user: { id: user!.userId },
           recipe: { id: recipeId },
         },
       });
