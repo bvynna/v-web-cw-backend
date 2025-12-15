@@ -13,7 +13,7 @@ router.post('/register', async (req: express.Request, res: express.Response) => 
     const { email, password, name } = req.body;
 
     if (!email || !password || !name) {
-      res.status(400).json({ error: 'All fields are required' });
+      res.status(400).json({ error: 'Все поля обязательны для заполнения' });
       return;
     }
 
@@ -21,7 +21,7 @@ router.post('/register', async (req: express.Request, res: express.Response) => 
     const existingUser = await userRepository.findOne({ where: { email } });
 
     if (existingUser) {
-      res.status(400).json({ error: 'User already exists' });
+      res.status(400).json({ error: 'Пользователь уже существует' });
       return;
     }
 
@@ -39,8 +39,8 @@ router.post('/register', async (req: express.Request, res: express.Response) => 
       user: { id: user.id, email: user.email, name: user.name },
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    console.error('Ошибка регистрации:', error);
+    res.status(500).json({ error: 'Не удалось выполнить регистрацию' });
   }
 });
 
@@ -50,7 +50,7 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required' });
+      res.status(400).json({ error: 'Требуется указать адрес электронной почты и пароль' });
       return;
     }
 
@@ -58,13 +58,13 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
     const user = await userRepository.findOne({ where: { email } });
 
     if (!user) {
-      res.status(400).json({ error: 'Invalid credentials' });
+      res.status(400).json({ error: 'Неверные учетные данные' });
       return;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res.status(400).json({ error: 'Invalid credentials' });
+      res.status(400).json({ error: 'Неверные учетные данные' });
       return;
     }
 
@@ -74,8 +74,8 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
       user: { id: user.id, email: user.email, name: user.name },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    console.error('Ошибка входа в систему:', error);
+    res.status(500).json({ error: 'Ошибка входа' });
   }
 });
 
