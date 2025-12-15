@@ -33,14 +33,13 @@ export const optionalAuth = (
   next: express.NextFunction,
 ): void => {
   const authHeader = req.headers.authorization;
+
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     next();
     return;
   }
-
-  const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
   jwt.verify(token, JWT_SECRET, (err: unknown, user: unknown) => {
     if (!err) {
