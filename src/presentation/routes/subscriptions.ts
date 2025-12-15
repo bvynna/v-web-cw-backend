@@ -11,10 +11,10 @@ const router = express.Router();
 router.post(
   '/users/:userId/subscribe',
   authenticateToken,
-  async (req: any, res: express.Response) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const targetUserId = parseInt(req.params.userId);
-      const subscriberId = req.user.userId;
+      const subscriberId = req.user!.userId;
 
       if (targetUserId === subscriberId) {
         return res.status(400).json({ error: 'Cannot subscribe to yourself' });
@@ -69,10 +69,10 @@ router.post(
 router.delete(
   '/users/:userId/subscribe',
   authenticateToken,
-  async (req: any, res: express.Response) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const targetUserId = parseInt(req.params.userId);
-      const subscriberId = req.user.userId;
+      const subscriberId = req.user!.userId;
 
       const subscriptionRepository = AppDataSource.getRepository(Subscription);
 
@@ -101,10 +101,10 @@ router.delete(
 router.get(
   '/users/:userId/subscribe/status',
   authenticateToken,
-  async (req: any, res: express.Response) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const targetUserId = parseInt(req.params.userId);
-      const subscriberId = req.user.userId;
+      const subscriberId = req.user!.userId;
 
       const subscriptionRepository = AppDataSource.getRepository(Subscription);
 
@@ -202,7 +202,7 @@ router.get('/users/:userId/subscriptions', async (req: express.Request, res: exp
 router.get(
   '/users/:userId/subscribers/check/:subscriberId',
   authenticateToken,
-  async (req: any, res: express.Response) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const userId = parseInt(req.params.userId);
       const subscriberId = parseInt(req.params.subscriberId);

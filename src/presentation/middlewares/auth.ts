@@ -22,7 +22,7 @@ export const authenticateToken = (
       return;
     }
 
-    (req as any).user = user;
+    req.user = user as { userId: number };
     next();
   });
 };
@@ -44,7 +44,7 @@ export const optionalAuth = (
 
   jwt.verify(token, JWT_SECRET, (err: unknown, user: unknown) => {
     if (!err) {
-      (req as any).user = user;
+      req.user = user as { userId: number };
     }
     next();
   });
