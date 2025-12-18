@@ -81,9 +81,10 @@ router.get('/', optionalAuth, async (req: express.Request, res: express.Response
     // Добавляем количество комментариев
     const recipesWithCommentCount = await Promise.all(
       recipes.map(async recipe => {
-        const commentCount = await commentRepository.count({
-          where: { recipe: { id: recipe.id } },
-        });
+        const commentCount = await commentRepository
+          .createQueryBuilder('comment')
+          .where('comment.recipeId = :recipeId', { recipeId: recipe.id })
+          .getCount();
         return {
           ...recipe,
           commentCount,
